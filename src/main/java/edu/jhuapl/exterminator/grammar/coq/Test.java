@@ -1,0 +1,109 @@
+/*
+ * Copyright (c) 2016, Johns Hopkins University Applied Physics
+ * Laboratory All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following
+ * disclaimer in the documentation and/or other materials provided
+ * with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived
+ * from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package edu.jhuapl.exterminator.grammar.coq;
+
+import java.io.IOException;
+import java.util.Arrays;
+
+import org.antlr.v4.runtime.ANTLRFileStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Parser;
+import org.antlr.v4.runtime.ParserRuleContext;
+
+import edu.jhuapl.exterminator.grammar.coq.sentence.AssertionAndProof;
+import edu.jhuapl.exterminator.grammar.coq.tactic.Tactic;
+
+public class Test {
+	
+	@SuppressWarnings("unused")
+	private static class Listener extends CoqBaseListener {
+		
+		private final Parser parser;
+		
+		public Listener(Parser parser) {
+			this.parser = parser;
+		}
+		
+		@Override public void enterEveryRule(ParserRuleContext ctx) {
+			System.out.println("enter " + ctx.toStringTree(Arrays.asList(CoqParser.ruleNames)));
+		}
+
+		@Override public void exitEveryRule(ParserRuleContext ctx) {
+			System.out.println("exit " + ctx.toStringTree(Arrays.asList(CoqParser.ruleNames)));
+		}
+		
+		@Override
+		public void exitCommand(CoqParser.CommandContext ctx) {
+			System.out.println("command exit " + ctx.toInfoString(parser));
+			super.exitCommand(ctx);
+		}
+		
+		@Override
+		public void enterTerm(CoqParser.TermContext ctx) {
+			System.out.println("term enter " + ctx.toInfoString(parser));
+			super.enterTerm(ctx);
+		}
+		
+		@Override
+		public void exitTerm(CoqParser.TermContext ctx) {
+			System.out.println("term exit " + ctx.toInfoString(parser));
+			super.exitTerm(ctx);
+		}
+	}
+
+	public static void main(String[] args) throws IOException {
+		CoqLexer lexer = new CoqLexer(new ANTLRFileStream("../TestProgramC.v"));
+		CoqFTParser parser = new CoqFTParser(new CommonTokenStream(lexer));
+		
+		//Listener listener = new Listener(parser);
+		//parser.addParseListener(listener);
+		//CoqParser.ProgContext ctx = parser.prog();
+		//System.out.println(ctx.toStringTree(Arrays.asList(CoqParser.ruleNames)));
+		
+		Prog prog = parser.parseProg();
+		for(Command command : prog) {
+			if(command instanceof AssertionAndProof) {
+				AssertionAndProof ap = (AssertionAndProof) command;
+				System.out.println(ap.getAssertion());
+				System.out.println("Proof:");
+				for(Tactic tactic : ap.getProof().getTactics()) {
+					System.out.println(tactic);
+				}
+			} else {
+				System.out.println(command);
+			}
+		}
+	}
+	
+}
